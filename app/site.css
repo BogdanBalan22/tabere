@@ -806,6 +806,35 @@ a {
   gap: 0.92rem;
 }
 
+.ageTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.52rem;
+}
+
+.ageTab {
+  border: 1px solid #cfe0ff;
+  border-radius: 999px;
+  padding: 0.62rem 0.7rem;
+  background: #f2f7ff;
+  color: #2e57ac;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.ageTab:hover {
+  transform: translateY(-1px);
+  border-color: #9dbcf6;
+}
+
+.ageTab.isActive {
+  color: #fff;
+  border-color: #2f56a6;
+  background: linear-gradient(120deg, #2b4f97, #3b65b8);
+}
+
 .signupFormPanel {
   position: relative;
   border-radius: 14px;
@@ -1379,6 +1408,10 @@ button[type="submit"]:hover {
 
   .dayAccordion li p {
     font-size: 0.95rem;
+  }
+
+  .ageTabs {
+    grid-template-columns: 1fr;
   }
 
   .locationCollage {

@@ -27,6 +27,7 @@ type ScheduleRow = {
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedAgeCategory, setSelectedAgeCategory] = useState("5-7 ani");
   const currentYear = new Date().getFullYear();
 
   const schedule: ScheduleRow[] = [
@@ -58,6 +59,7 @@ export default function Home() {
     { title: "Ziua 4", key: "day4" as const, icon: CalendarDays },
     { title: "Ziua 5", key: "day5" as const, icon: Telescope },
   ];
+  const ageCategories = ["5-7 ani", "7-9 ani", "9-11 ani"];
 
   return (
     <div className="siteWrap">
@@ -108,7 +110,7 @@ export default function Home() {
             </div>
             <div className="heroMeta">
               <span><Clock3 size={16} /> 08:30 - 18:00</span>
-              <span><Users size={16} /> pentru elevi de scoala primară</span>
+              <span><Users size={16} /> pentru copii între 5-11 ani</span>
             </div>
           </div>
 
@@ -245,6 +247,22 @@ export default function Home() {
           <div className="signupLayout">
             <div className="signupFormPanel">
               <form className="signupForm">
+                <div className="ageTabs" role="tablist" aria-label="Categorie de vârstă pentru înscriere">
+                  {ageCategories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      role="tab"
+                      className={`ageTab ${selectedAgeCategory === category ? "isActive" : ""}`}
+                      aria-selected={selectedAgeCategory === category}
+                      onClick={() => setSelectedAgeCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+                <input type="hidden" name="ageCategory" value={selectedAgeCategory} required />
+
                 <fieldset>
                   <legend>Date părinte</legend>
                   <label>Nume și prenume părinte<input type="text" name="parentName" required /></label>
@@ -255,7 +273,7 @@ export default function Home() {
                 <fieldset>
                   <legend>Date copil</legend>
                   <label>Nume și prenume copil<input type="text" name="childName" required /></label>
-                  <label>Vârsta copilului<input type="number" name="age" min={5} max={18} required /></label>
+                  <label>Vârsta copilului<input type="number" name="age" min={5} max={11} required /></label>
                   <label>Școala unde este înscris<input type="text" name="school" required /></label>
                 </fieldset>
 
@@ -295,6 +313,10 @@ export default function Home() {
               <p>
                 Datele sunt utilizate exclusiv pentru organizarea taberei și comunicarea cu părinții,
                 în conformitate cu legislația privind protecția datelor.
+              </p>
+              <p>
+                Linkurile de plată vor fi comunicate separat: un link pentru participanți externi și
+                un link pentru participanți interni.
               </p>
               <div className="signupPulseCard">
                 <Users size={18} />
