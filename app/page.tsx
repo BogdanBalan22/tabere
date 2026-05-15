@@ -1,7 +1,8 @@
  "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
+import { type InscriptionAgeCategory, INSCRIPTION_AGE_CATEGORIES, INSCRIPTION_SERIES_OPTIONS } from "@/lib/inscription-constants";
 import {
   CalendarDays,
   Clock3,
@@ -27,7 +28,9 @@ type ScheduleRow = {
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [selectedAgeCategory, setSelectedAgeCategory] = useState("5-7 ani");
+  const [selectedAgeCategory, setSelectedAgeCategory] = useState<InscriptionAgeCategory>(INSCRIPTION_AGE_CATEGORIES[0]);
+  const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [formError, setFormError] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
 
   const schedule: ScheduleRow[] = [
@@ -45,13 +48,6 @@ export default function Home() {
     { interval: "17:30 - 18:00", day1: "Preluare copii", day2: "Preluare copii", day3: "Preluare copii", day4: "Preluare copii", day5: "Preluare copii" },
   ];
 
-  const seriesOptions = [
-    "Săptămâna 1 - 22-26 iunie",
-    "Săptămâna 2 - 29 iunie - 3 iulie",
-    "Săptămâna 3 - 6-10 iulie",
-    "Săptămâna 4 - 13-17 iulie",
-  ];
-
   const dayPrograms = [
     { title: "Ziua 1", key: "day1" as const, icon: Sparkles },
     { title: "Ziua 2", key: "day2" as const, icon: Compass },
@@ -59,7 +55,72 @@ export default function Home() {
     { title: "Ziua 4", key: "day4" as const, icon: CalendarDays },
     { title: "Ziua 5", key: "day5" as const, icon: Telescope },
   ];
-  const ageCategories = ["5-7 ani", "7-9 ani", "9-11 ani"];
+
+  async function handleInscriptionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError(null);
+
+    const formEl = event.currentTarget;
+    const fd = new FormData(formEl);
+
+    const organizationWebsite = String(fd.get("organizationWebsite") ?? "").trim();
+    if (organizationWebsite !== "") {
+      setFormStatus("success");
+      return;
+    }
+
+    if (!fd.get("gdpr")) {
+      setFormStatus("error");
+      setFormError("Este necesar consimțământul pentru prelucrarea datelor.");
+      return;
+    }
+
+    const seriesValue = fd.get("series");
+    const series = typeof seriesValue === "string" ? seriesValue : "";
+
+    const payload = {
+      parentName: String(fd.get("parentName") ?? "").trim(),
+      phone: String(fd.get("phone") ?? "").trim(),
+      email: String(fd.get("email") ?? "").trim(),
+      childName: String(fd.get("childName") ?? "").trim(),
+      age: Number(fd.get("age")),
+      school: String(fd.get("school") ?? "").trim(),
+      series,
+      medicalInfo: String(fd.get("medicalInfo") ?? "").trim(),
+      gdpr: true as const,
+      ageCategory: String(fd.get("ageCategory") ?? "").trim() || selectedAgeCategory,
+    };
+
+    setFormStatus("submitting");
+
+    try {
+      const res = await fetch("/api/inscriere", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      let data: { ok?: boolean; error?: string } = {};
+      try {
+        data = (await res.json()) as { ok?: boolean; error?: string };
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok || !data.ok) {
+        setFormStatus("error");
+        setFormError(data.error ?? "A apărut o problemă la trimitere. Încearcă din nou.");
+        return;
+      }
+
+      setFormStatus("success");
+      formEl.reset();
+      setSelectedAgeCategory(INSCRIPTION_AGE_CATEGORIES[0]);
+    } catch {
+      setFormStatus("error");
+      setFormError("Nu am putut trimite cererea. Verifică conexiunea și încearcă din nou.");
+    }
+  }
 
   return (
     <div className="siteWrap">
@@ -246,9 +307,36 @@ export default function Home() {
           </div>
           <div className="signupLayout">
             <div className="signupFormPanel">
-              <form className="signupForm">
+              <form className="signupForm" onSubmit={handleInscriptionSubmit}>
+                <div className="inscriptionHoneypotWrap" aria-hidden="true">
+                  <label>
+                    Website organizație
+                    <input
+                      type="text"
+                      name="organizationWebsite"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      defaultValue=""
+                    />
+                  </label>
+                </div>
+
+                <div className="signupFormStatusRegion" aria-live="polite">
+                  {formStatus === "submitting" ? (
+                    <p className="signupFormStatus signupFormStatusNeutral">Se trimite cererea...</p>
+                  ) : null}
+                  {formStatus === "success" ? (
+                    <p className="signupFormStatus signupFormStatusSuccess">
+                      Cererea a fost trimisă. Veți fi contactat în curând pentru confirmare.
+                    </p>
+                  ) : null}
+                  {formStatus === "error" && formError ? (
+                    <p className="signupFormStatus signupFormStatusError">{formError}</p>
+                  ) : null}
+                </div>
+
                 <div className="ageTabs" role="tablist" aria-label="Categorie de vârstă pentru înscriere">
-                  {ageCategories.map((category) => (
+                  {INSCRIPTION_AGE_CATEGORIES.map((category) => (
                     <button
                       key={category}
                       type="button"
@@ -279,7 +367,7 @@ export default function Home() {
 
                 <fieldset>
                   <legend>Alegerea programului</legend>
-                  {seriesOptions.map((option) => (
+                  {INSCRIPTION_SERIES_OPTIONS.map((option) => (
                     <label key={option} className="checkboxLabel radioLabel">
                       <input type="radio" name="series" value={option} required />
                       {option}
@@ -299,7 +387,9 @@ export default function Home() {
                   <input type="checkbox" name="gdpr" required />
                   Sunt de acord cu prelucrarea datelor personale pentru înscrierea în tabără.
                 </label>
-                <button type="submit">Înscrie copilul</button>
+                <button type="submit" disabled={formStatus === "submitting"} aria-busy={formStatus === "submitting"}>
+                  Înscrie copilul
+                </button>
               </form>
             </div>
 
