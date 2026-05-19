@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { inscriptionPayloadSchema } from "@/lib/inscription-schema";
+import { sendInscriptionEmails } from "@/lib/email";
 
 function getAllowedOrigins(): string[] | null {
   const explicit = process.env.INSCRIPTION_ALLOWED_ORIGINS?.trim();
@@ -60,6 +61,15 @@ export async function POST(request: NextRequest) {
   const parsed = inscriptionPayloadSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "Date invalide sau incomplete." }, { status: 400 });
+  }
+
+  // Send SMTP emails
+  const emailResult = await sendInscriptionEmails(parsed.data);
+  if (!emailResult.success) {
+    return NextResponse.json(
+      { ok: false, error: "Înscrierea a fost procesată, dar notificarea prin e-mail a eșuat." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ ok: true });
